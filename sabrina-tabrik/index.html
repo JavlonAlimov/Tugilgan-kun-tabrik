@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sabrina, tug'ilgan kuning muborak!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFE7E0;--ink:#2A1450;--mut:#5B4780;--glass:rgba(255,255,255,.55);--edge:rgba(42,20,80,.14);--coral:#FF6F61;--lilac:#A98BFF;--butter:#FFC94D;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#150B2B;--ink:#FFF1E8;--mut:#CDBFE6;--glass:rgba(255,255,255,.08);--edge:rgba(255,255,255,.16)}}
+:root[data-theme="dark"]{--bg:#150B2B;--ink:#FFF1E8;--mut:#CDBFE6;--glass:rgba(255,255,255,.08);--edge:rgba(255,255,255,.16)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 1.1rem/1.5 "Bricolage Grotesque",system-ui,sans-serif;overflow:hidden;overscroll-behavior:none}
+.stage{position:fixed;inset:0;z-index:1;touch-action:pan-y}
+.page{position:absolute;inset:0;z-index:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;text-align:center;padding:max(56px,calc(env(safe-area-inset-top,0px) + 44px)) 22px max(28px,env(safe-area-inset-bottom,0px));overflow-y:auto;background:var(--bg)}
+.page.on,.page.prev{display:flex}
+.page.prev{z-index:2}
+.page.on{z-index:3}
+.page::before{content:"";position:fixed;inset:-25%;z-index:-1;opacity:.8;background:radial-gradient(circle at 25% 20%,var(--c1),transparent 45%),radial-gradient(circle at 80% 75%,var(--c2),transparent 45%),radial-gradient(circle at 75% 12%,var(--c3),transparent 35%);animation:dr 14s ease-in-out infinite alternate}
+.page:nth-child(odd){--c1:var(--coral);--c2:var(--lilac);--c3:var(--butter)}
+.page:nth-child(even){--c1:var(--lilac);--c2:var(--butter);--c3:var(--coral)}
+@keyframes dr{to{transform:translate(4%,-3%) scale(1.12)}}
+.dots{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:5;pointer-events:none}
+.dots i{width:8px;height:8px;border-radius:9px;background:var(--ink);opacity:.25;transition:width .5s,opacity .5s}
+.dots i.on{width:30px;opacity:.9}
+.rise{opacity:0;transform:translateY(20px);margin:0}
+.on .rise{animation:rs .8s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:calc(var(--d,0)*130ms + 450ms)}
+@keyframes rs{to{opacity:1;transform:none}}
+.big{font:800 clamp(9rem,44vw,17rem)/.85 "Bricolage Grotesque",sans-serif;letter-spacing:-.06em;background:linear-gradient(120deg,var(--coral),var(--lilac) 55%,var(--butter));-webkit-background-clip:text;background-clip:text;color:transparent;padding:0 .05em}
+.name{font-weight:800;font-size:clamp(3.4rem,17vw,8rem);line-height:1;letter-spacing:-.04em;margin:0;overflow:hidden;padding:.08em .05em}
+.ltr{display:inline-block;transform:translateY(115%) rotate(9deg);opacity:0}
+.on .ltr{animation:up .8s cubic-bezier(.2,.9,.2,1) forwards;animation-delay:calc(var(--i)*60ms + 600ms)}
+@keyframes up{to{transform:none;opacity:1}}
+h2{font-weight:800;font-size:clamp(2rem,8vw,3.2rem);line-height:1.05;letter-spacing:-.03em;margin:0;text-wrap:balance}
+p{margin:0;text-wrap:pretty}
+.mut{color:var(--mut)}
+.go{font:700 1.05rem "Bricolage Grotesque",sans-serif;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:.95rem 2rem;cursor:pointer;transition:transform .2s}
+.go:hover{transform:scale(1.06)}
+.go:focus-visible,.orb:focus-visible{outline:3px solid var(--coral);outline-offset:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(100%,520px)}
+.tile{background:var(--glass);border:1px solid var(--edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:26px;padding:1.1rem;text-align:left}
+.tile:nth-child(1){border-radius:26px 26px 26px 6px}
+.tile:nth-child(4){grid-column:1/-1;border-radius:6px 26px 26px 26px}
+.tile b{display:block;font-size:1.3rem;letter-spacing:-.02em;margin-bottom:.2rem}
+.orb{width:min(58vw,230px);aspect-ratio:1;border:0;border-radius:50%;cursor:pointer;font:700 1.2rem "Bricolage Grotesque",sans-serif;color:#2A1450;background:radial-gradient(circle at 35% 30%,#fff,var(--butter) 32%,var(--coral) 78%);box-shadow:0 0 90px 10px rgba(255,111,97,.5);animation:pl 2.4s ease-in-out infinite}
+.orb.done{animation:none;transform:scale(1.12);transition:transform .5s}
+@keyframes pl{50%{transform:scale(1.07)}}
+.card{max-width:34rem;background:var(--glass);border:1px solid var(--edge);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-radius:30px 30px 30px 8px;padding:1.6rem;text-align:left;display:grid;gap:.8rem}
+.sig{font-weight:800;font-size:1.4rem}
+canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+@media (prefers-reduced-motion:reduce){.page::before,.orb{animation:none}.rise,.ltr{opacity:1;transform:none;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="dots" id="dots"></div>
+<main class="stage" id="stage">
+
+<section class="page on">
+  <p class="rise" style="--d:0">Sen uchun bir sirim bor…</p>
+  <div class="big rise" style="--d:1" role="img" aria-label="23">23</div>
+  <button class="go rise" style="--d:2" data-to="1">Ochib ko'r</button>
+  <p class="mut rise" style="--d:3"><small>yoki barmog'ingni chapga surib qo'y</small></p>
+</section>
+
+<section class="page">
+  <p class="rise" style="--d:0">Tug'ilgan kuning muborak,</p>
+  <h1 class="name" id="nm"></h1>
+  <p class="mut rise" style="--d:5">Bugun butun kun sening kuning. 23 yosh — ajoyib boshlanish.</p>
+  <button class="go rise" style="--d:6" data-to="2">Davom et</button>
+</section>
+
+<section class="page">
+  <h2 class="rise" style="--d:0">Senga 4 ta tilagim bor</h2>
+  <div class="grid">
+    <div class="tile rise" style="--d:1"><b>Quvonch</b>Har kuning kulgi bilan boshlansin.</div>
+    <div class="tile rise" style="--d:2"><b>Jasorat</b>Orzularing sari qo'rqmay qadam tashla.</div>
+    <div class="tile rise" style="--d:3"><b>Baxt</b>Yoningda doim yaxshi insonlar bo'lsin.</div>
+    <div class="tile rise" style="--d:4"><b>Omad</b>Bu yosh senga eng yaxshi yil bo'lsin.</div>
+  </div>
+  <button class="go rise" style="--d:5" data-to="3">Yana bor</button>
+</section>
+
+<section class="page">
+  <h2 class="rise" style="--d:0">Endi o'zingga bir tilak tila</h2>
+  <p class="mut rise" style="--d:1">Ichingda o'yla va doiraga bos.</p>
+  <button class="orb rise" style="--d:2" id="orb">Tilak</button>
+  <p id="wm" class="mut" hidden>Tilaging yo'lga chiqdi.</p>
+  <button class="go" id="n4" data-to="4" hidden>Davom et</button>
+</section>
+
+<section class="page">
+  <div class="card rise" style="--d:0">
+    <p>Aziz Sabrina,</p>
+    <p>Yangi yosh — yangi sahifa. Senga sog'lik, xotirjamlik va ko'proq kulgi tilayman. Orzu qilgan har narsang o'z vaqtida kelsin.</p>
+    <p>Tug'ilgan kuning bilan!</p>
+    <p class="sig">— Eng ezgu tilaklar bilan</p>
+  </div>
+  <button class="go rise" style="--d:2" data-to="0">Boshidan ko'r</button>
+</section>
+
+</main>
+<canvas id="c"></canvas>
+<script>
+const P=[...document.querySelectorAll('.page')],D=document.getElementById('dots'),cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const NAME="Sabrina";
+
+const nm=document.getElementById('nm');nm.setAttribute('aria-label',NAME);
+[...NAME].forEach((c,i)=>{const s=document.createElement('span');s.className='ltr';s.style.setProperty('--i',i);s.textContent=c===' '?'\u00a0':c;s.setAttribute('aria-hidden','true');nm.append(s)});
+P.forEach(()=>D.append(document.createElement('i')));
+let cur=0,busy=false;D.children[0].classList.add('on');
+function go(n,x,y){
+  if(n<0||n>=P.length||n===cur||busy)return;
+  busy=true;const old=P[cur],nw=P[n];
+  x=x??innerWidth/2;y=y??innerHeight*.75;
+  old.className='page prev';nw.className='page on';
+  [...D.children].forEach((d,i)=>d.classList.toggle('on',i===n));
+  cur=n;
+  const end=()=>{old.className='page';busy=false;if(n===1)setTimeout(()=>burst(innerWidth/2,innerHeight*.4),900)};
+  if(RM){end();return}
+  const r=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
+  nw.animate({clipPath:[`circle(0px at ${x}px ${y}px)`,`circle(${r}px at ${x}px ${y}px)`]},{duration:950,easing:'cubic-bezier(.65,0,.25,1)'}).finished.then(end,end);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-to]');if(!b)return;
+  const r=b.getBoundingClientRect();
+  go(+b.dataset.to,r.left+r.width/2,r.top+r.height/2);
+});
+let sx=null;
+const st=document.getElementById('stage');
+st.addEventListener('pointerdown',e=>{sx=e.clientX});
+st.addEventListener('pointerup',e=>{if(sx===null)return;const dx=e.clientX-sx;sx=null;if(Math.abs(dx)>70)go(cur+(dx<0?1:-1),e.clientX,e.clientY)});
+addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' '].includes(e.key)&&e.target.tagName!=='BUTTON')go(cur+1);
+  if(['ArrowLeft','ArrowUp'].includes(e.key))go(cur-1);
+});
+document.getElementById('orb').addEventListener('click',e=>{
+  e.target.classList.add('done');e.target.textContent='Qabul';
+  document.getElementById('wm').hidden=false;document.getElementById('n4').hidden=false;
+  const r=e.target.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2);
+});
+let parts=[],raf=0;
+function fit(){cv.width=innerWidth;cv.height=innerHeight}
+addEventListener('resize',fit);fit();
+function burst(x,y){
+  if(RM)return;
+  const cols=['#FF6F61','#A98BFF','#FFC94D','#FFF1E8'];
+  for(let i=0;i<140;i++)parts.push({x,y,vx:(Math.random()-.5)*14,vy:-Math.random()*12-2,s:6+Math.random()*7,r:Math.random()*6,c:cols[i%4],l:130});
+  if(!raf)raf=requestAnimationFrame(tick);
+}
+function tick(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts=parts.filter(p=>p.l>0);
+  for(const p of parts){p.vy+=.28;p.x+=p.vx;p.y+=p.vy;p.r+=.2;p.l--;ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);ctx.restore()}
+  raf=parts.length?requestAnimationFrame(tick):0;
+}
+</script>
+</body>
+</html>
+
