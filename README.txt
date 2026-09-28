@@ -20,3 +20,5 @@ Mahalliy ko'rish: sabrina-tabrik/index.html faylini brauzerda oching.
 Google Fonts mavjud bo'lmasa, brauzer tizim shriftidan foydalanadi.
 
 Qo'llanma: https://docs.netlify.com/start/quickstarts/netlify-drop-quickstart/
+
+Musiqa: loyiha uchun yaratilgan original, vokalsiz instrumental kuy (assets/birthday-music.wav). Ochib ko'r bosilganda boshlanadi, pastdagi tugma orqali yoqiladi/o'chiriladi.
