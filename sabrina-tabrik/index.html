@@ -52,22 +52,21 @@ p{margin:0;text-wrap:pretty}
 .sig{font-weight:800;font-size:1.4rem}
 canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
 @media (prefers-reduced-motion:reduce){.page::before,.orb{animation:none}.rise,.ltr{opacity:1;transform:none;animation:none!important}}
-</style>
-<style>
+
 .music-toggle{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:7;border:1px solid var(--edge);border-radius:999px;padding:10px 16px;background:var(--bg);color:var(--ink);font:700 .85rem "Bricolage Grotesque",system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 20px #2a145018}
 .music-toggle:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
 .page{padding-bottom:max(80px,calc(env(safe-area-inset-bottom,0px) + 70px))}
 </style>
 </head>
 <body>
-<button class="music-toggle" id="music-toggle" type="button" aria-pressed="true" aria-label="Musiqani o'chirish">♫ Piano: yoqish</button>
+<button class="music-toggle" id="music-toggle" type="button" aria-pressed="false" aria-label="Musiqani yoqish">♫ Piano: yoqish</button>
 <div class="dots" id="dots"></div>
 <main class="stage" id="stage">
 
 <section class="page on">
   <p class="rise" style="--d:0">Sen uchun bir sirim bor…</p>
   <div class="big rise" style="--d:1" role="img" aria-label="23">23</div>
-  <button class="go rise" style="--d:2" data-to="1">Ochib ko'r</button>
+  <button class="go rise" id="open-btn" style="--d:2" data-to="1">Ochib ko'r</button>
   <p class="mut rise" style="--d:3"><small>yoki barmog'ingni chapga surib qo'y</small></p>
 </section>
 
@@ -166,8 +165,9 @@ function tick(){
 </script>
 <script>
 (function(){
-  var AC=window.AudioContext||window.webkitAudioContext,ac,out,playing=false,timer=0,chosen=false;
+  var AC=window.AudioContext||window.webkitAudioContext,ac,out,playing=false,timer=0;
   var tg=document.getElementById('music-toggle'),BEAT=.62;
+  var openBtn=document.getElementById('open-btn');
   var F={f:[41,[53,57,60]],c:[36,[52,55,58]],b:[34,[50,53,58]]};
   var song=[
     {n:[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2]],c:[[0,'c'],[3,'c']],len:6},
@@ -201,17 +201,16 @@ function tick(){
       ph.n.forEach(function(x){key(x[0],t,Math.max(x[1]*BEAT*1.9,1.1),.3);t+=x[1]*BEAT;});
       t=t0+ph.len*BEAT;
     });
-    var last=song[3];
     key(72-12,t-BEAT*2,BEAT*4,.2);
     timer=setTimeout(function(){if(playing)loop();},(t+1.6-ac.currentTime)*1000);
   }
   function label(){
     tg.setAttribute('aria-pressed',String(playing));
-    tg.setAttribute('aria-label',playing?"Musiqani o'chirish":"Musiqani yoqish");
+    tg.setAttribute('aria-label',playing?"Musiqani to'xtatish":"Musiqani yoqish");
     tg.textContent=playing?"♫ Piano: o'chirish":"♫ Piano: yoqish";
   }
   function start(){
-    if(!AC)return;
+    if(!AC||playing)return;
     try{
       if(!ac){
         ac=new AC();out=ac.createGain();out.gain.value=.8;
@@ -219,14 +218,34 @@ function tick(){
         d.delayTime.value=.19;fb.gain.value=.3;w.gain.value=.22;
         out.connect(ac.destination);out.connect(d);d.connect(fb);fb.connect(d);d.connect(w);w.connect(ac.destination);
       }
-      ac.resume();playing=true;loop();label();
-    }catch(e){playing=false;label();}
+      if(ac.state==='suspended'){
+        ac.resume().then(function(){
+          playing=true;loop();label();
+        });
+      }else{
+        playing=true;loop();label();
+      }
+    }catch(e){}
   }
-  function stop(){playing=false;clearTimeout(timer);if(ac)ac.suspend();label();}
-  tg.addEventListener('click',function(e){e.stopPropagation();chosen=true;playing?stop():start();});
-  document.addEventListener('click',function(e){if(!chosen&&!e.target.closest('#music-toggle')){chosen=true;start();}});
+  function stop(){
+    playing=false;clearTimeout(timer);
+    if(ac)ac.suspend();
+    label();
+  }
+
+  // "Ochib ko'r" tugmasi bosilganda musiqa avtomatik boshlanadi
+  if(openBtn){
+    openBtn.addEventListener('click',function(){
+      if(!playing) start();
+    });
+  }
+
+  // Pastdagi tugma orqali xohlasa o'chirib/yoqishi ham mumkin
+  tg.addEventListener('click',function(e){
+    e.stopPropagation();
+    playing?stop():start();
+  });
 })();
 </script>
 </body>
 </html>
-
