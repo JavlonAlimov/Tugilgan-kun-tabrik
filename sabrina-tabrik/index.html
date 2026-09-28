@@ -165,154 +165,183 @@ function tick(){
 </script>
 
 <script>
-// MOBIL (iOS / Android) moslashtirilgan Audio tizimi
+// SILENT / MUTE SWITCH TO'SIQINI YENGIB O'TUVCHI MEDIA-AUDIO TIZIMI
 (function(){
-  var AudioCtx = window.AudioContext || window.webkitAudioContext;
-  var ac = null, out = null, playing = false, timer = null;
   var tg = document.getElementById('music-toggle');
   var openBtn = document.getElementById('open-btn');
-  var BEAT = 0.62;
+  var audioElem = null;
+  var isPlaying = false;
+  var audioBlobUrl = null;
 
-  var F = {
-    f: [41, [53, 57, 60]],
-    c: [36, [52, 55, 58]],
-    b: [34, [50, 53, 58]]
-  };
+  // 1. Sintetik musiqani OfflineAudioContext orqali 16-bit WAV faylga generatsiya qilish
+  function buildWavUrl(callback) {
+    if (audioBlobUrl) return callback(audioBlobUrl);
 
-  var song = [
-    {n:[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2]], c:[[0,'c'],[3,'c']], len:6},
-    {n:[[60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2]], c:[[0,'c'],[3,'f']], len:6},
-    {n:[[60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2]], c:[[1,'f'],[4,'c']], len:7},
-    {n:[[70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]], c:[[0,'b'],[3,'f']], len:6}
-  ];
+    var sampleRate = 22050;
+    var BEAT = 0.62;
+    var duration = 16.5; // Umumiy qo'shiq davomiyligi
+    var OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OfflineCtx) return;
 
-  function initAudio() {
-    if (!ac && AudioCtx) {
-      ac = new AudioCtx();
-      out = ac.createGain();
-      out.gain.value = 0.85;
+    var ctx = new OfflineCtx(1, sampleRate * duration, sampleRate);
+    var master = ctx.createGain();
+    master.gain.value = 0.9;
+    master.connect(ctx.destination);
 
-      var d = ac.createDelay(), fb = ac.createGain(), w = ac.createGain();
-      d.delayTime.value = 0.18;
-      fb.gain.value = 0.28;
-      w.gain.value = 0.2;
+    var F = {
+      f: [41, [53, 57, 60]],
+      c: [36, [52, 55, 58]],
+      b: [34, [50, 53, 58]]
+    };
 
-      out.connect(ac.destination);
-      out.connect(d);
-      d.connect(fb);
-      fb.connect(d);
-      d.connect(w);
-      w.connect(ac.destination);
+    var song = [
+      {n:[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2]], c:[[0,'c'],[3,'c']], len:6},
+      {n:[[60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2]], c:[[0,'c'],[3,'f']], len:6},
+      {n:[[60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2]], c:[[1,'f'],[4,'c']], len:7},
+      {n:[[70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]], c:[[0,'b'],[3,'f']], len:6}
+    ];
+
+    function note(m, when, dur, vel) {
+      var fr = 440 * Math.pow(2, (m - 69) / 12);
+      var g = ctx.createGain(), lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = Math.min(8000, fr * 6 + 900);
+      lp.Q.value = 0.4;
+
+      g.gain.setValueAtTime(0, when);
+      g.gain.linearRampToValueAtTime(vel, when + 0.008);
+      g.gain.exponentialRampToValueAtTime(vel * 0.4, when + 0.35);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+      lp.connect(g);
+      g.connect(master);
+
+      [[1, 'triangle', 1], [2, 'sine', 0.4], [3, 'sine', 0.15]].forEach(function(p) {
+        var osc = ctx.createOscillator(), pg = ctx.createGain();
+        osc.type = p[1];
+        osc.frequency.value = fr * p[0];
+        pg.gain.value = p[2];
+        osc.connect(pg);
+        pg.connect(lp);
+        osc.start(when);
+        osc.stop(when + dur + 0.05);
+      });
     }
-    // iOS Safari uchun xavfsizlik buferini bo'shatib uyg'otish:
-    if (ac && ac.state === 'suspended') {
-      ac.resume();
-      var b = ac.createBuffer(1, 1, 22050);
-      var src = ac.createBufferSource();
-      src.buffer = b;
-      src.connect(ac.destination);
-      src.start(0);
-    }
-  }
 
-  function key(m, when, dur, vel) {
-    if (!ac) return;
-    var fr = 440 * Math.pow(2, (m - 69) / 12);
-    var g = ac.createGain(), lp = ac.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = Math.min(8500, fr * 7 + 800);
-    lp.Q.value = 0.4;
-
-    g.gain.setValueAtTime(0, when);
-    g.gain.linearRampToValueAtTime(vel, when + 0.008);
-    g.gain.exponentialRampToValueAtTime(vel * 0.4, when + 0.35);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-
-    lp.connect(g);
-    g.connect(out);
-
-    [[1, 'triangle', 1, 0], [2, 'sine', 0.4, 2], [3, 'sine', 0.12, -3]].forEach(function(p) {
-      var o = ac.createOscillator(), pg = ac.createGain();
-      o.type = p[1];
-      o.frequency.value = fr * p[0];
-      o.detune.value = p[3];
-      pg.gain.value = p[2];
-      o.connect(pg);
-      pg.connect(lp);
-      o.start(when);
-      o.stop(when + dur + 0.1);
-    });
-  }
-
-  function playMelody() {
-    if (!ac || !playing) return;
-    var t = ac.currentTime + 0.1;
+    var t = 0.1;
     song.forEach(function(ph) {
       var t0 = t;
       ph.c.forEach(function(x) {
         var ch = F[x[1]], w = t0 + x[0] * BEAT;
-        key(ch[0], w, BEAT * 2.2, 0.22);
+        note(ch[0], w, BEAT * 2.2, 0.25);
         ch[1].forEach(function(m, i) {
-          key(m, w + BEAT + i * 0.01, BEAT * 1.5, 0.08);
-          key(m, w + BEAT * 2 + i * 0.01, BEAT * 1.4, 0.07);
+          note(m, w + BEAT + i * 0.01, BEAT * 1.5, 0.09);
+          note(m, w + BEAT * 2 + i * 0.01, BEAT * 1.4, 0.08);
         });
       });
       ph.n.forEach(function(x) {
-        key(x[0], t, Math.max(x[1] * BEAT * 1.8, 1.0), 0.35);
+        note(x[0], t, Math.max(x[1] * BEAT * 1.8, 1.0), 0.4);
         t += x[1] * BEAT;
       });
       t = t0 + ph.len * BEAT;
     });
 
-    key(60, t - BEAT * 2, BEAT * 4, 0.25);
-    timer = setTimeout(function() {
-      if (playing) playMelody();
-    }, (t + 1.2 - ac.currentTime) * 1000);
-  }
+    note(60, t - BEAT * 2, BEAT * 3.5, 0.28);
 
-  function updateBtn() {
-    tg.setAttribute('aria-pressed', String(playing));
-    tg.textContent = playing ? "♫ Musiqa: o'chirish" : "♫ Musiqa: yoqish";
-  }
+    ctx.startRendering().then(function(rendered) {
+      var numChannels = 1;
+      var length = rendered.length * 2 + 44;
+      var buffer = new ArrayBuffer(length);
+      var view = new DataView(buffer);
 
-  function start() {
-    initAudio();
-    if (!ac) return;
-    ac.resume().then(function() {
-      playing = true;
-      clearTimeout(timer);
-      playMelody();
-      updateBtn();
+      function writeStr(offset, str) {
+        for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + rendered.length * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, rendered.length * 2, true);
+
+      var channelData = rendered.getChannelData(0);
+      var offset = 44;
+      for (var i = 0; i < channelData.length; i++, offset += 2) {
+        var s = Math.max(-1, Math.min(1, channelData[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      var blob = new Blob([view], { type: 'audio/wav' });
+      audioBlobUrl = URL.createObjectURL(blob);
+      callback(audioBlobUrl);
     }).catch(function(){});
   }
 
+  // Sahifa yuklanishidayoq audio faylni tayyorlab qo'yish
+  buildWavUrl(function(){});
+
+  function getAudio(url) {
+    if (!audioElem) {
+      audioElem = new Audio(url);
+      audioElem.loop = true;
+      audioElem.preload = 'auto';
+      // iOS Media Player uchun to'g'ri rejim
+      audioElem.setAttribute('playsinline', 'true');
+      audioElem.setAttribute('webkit-playsinline', 'true');
+    }
+    return audioElem;
+  }
+
+  function updateBtn() {
+    tg.setAttribute('aria-pressed', String(isPlaying));
+    tg.textContent = isPlaying ? "♫ Musiqa: o'chirish" : "♫ Musiqa: yoqish";
+  }
+
+  function play() {
+    buildWavUrl(function(url) {
+      var a = getAudio(url);
+      a.play().then(function() {
+        isPlaying = true;
+        updateBtn();
+      }).catch(function() {
+        isPlaying = false;
+        updateBtn();
+      });
+    });
+  }
+
   function stop() {
-    playing = false;
-    clearTimeout(timer);
-    if (ac) ac.suspend();
+    if (audioElem) {
+      audioElem.pause();
+    }
+    isPlaying = false;
     updateBtn();
   }
 
-  // Telefonda 'click' ba'zan kechikadi yoki cheklanadi, shu sababli to'g'ridan-to'g'ri 'pointerdown' / 'touchstart' hodisasi bilan bog'landi:
-  function triggerStart(e) {
-    if (!playing) {
-      start();
+  // "Ochib ko'r" tugmasi bosilishi bilanoq
+  function handleOpen() {
+    if (!isPlaying) {
+      play();
     }
   }
 
   if (openBtn) {
-    openBtn.addEventListener('click', triggerStart);
-    openBtn.addEventListener('touchend', triggerStart, {passive: true});
+    openBtn.addEventListener('click', handleOpen);
+    openBtn.addEventListener('pointerup', handleOpen);
   }
 
   tg.addEventListener('click', function(e) {
     e.stopPropagation();
-    playing ? stop() : start();
+    isPlaying ? stop() : play();
   });
-  tg.addEventListener('touchend', function(e) {
-    e.stopPropagation();
-  }, {passive: true});
-
 })();
 </script>
 </body>
