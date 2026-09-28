@@ -54,14 +54,13 @@ canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index
 @media (prefers-reduced-motion:reduce){.page::before,.orb{animation:none}.rise,.ltr{opacity:1;transform:none;animation:none!important}}
 </style>
 <style>
-.music-toggle{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:7;border:1px solid var(--edge);border-radius:999px;padding:10px 16px;background:var(--bg);color:var(--ink);font:700 .85rem system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 20px #2a145018}
+.music-toggle{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:7;border:1px solid var(--edge);border-radius:999px;padding:10px 16px;background:var(--bg);color:var(--ink);font:700 .85rem "Bricolage Grotesque",system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 20px #2a145018}
 .music-toggle:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
 .page{padding-bottom:max(80px,calc(env(safe-area-inset-bottom,0px) + 70px))}
 </style>
 </head>
 <body>
-<audio id="music" src="assets/birthday-music.wav" loop preload="none"></audio>
-<button class="music-toggle" id="music-toggle" type="button" aria-pressed="false" aria-label="Musiqani yoqish">♫ Musiqa: yoqish</button>
+<button class="music-toggle" id="music-toggle" type="button" aria-pressed="true" aria-label="Musiqani o'chirish">♫ Piano: yoqish</button>
 <div class="dots" id="dots"></div>
 <main class="stage" id="stage">
 
@@ -114,28 +113,6 @@ canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index
 const P=[...document.querySelectorAll('.page')],D=document.getElementById('dots'),cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const NAME="Sabrina";
-const music=document.getElementById('music'),musicToggle=document.getElementById('music-toggle');
-let musicChosen=false;
-music.volume=0.55;
-function musicState(){
-  const playing=!music.paused;
-  musicToggle.setAttribute('aria-pressed',String(playing));
-  musicToggle.setAttribute('aria-label',playing?"Musiqani o'chirish":"Musiqani yoqish");
-  musicToggle.textContent=playing?"♫ Musiqa: o'chirish":"♫ Musiqa: yoqish";
-}
-function startMusic(){music.play().catch(()=>{musicState()})}
-music.addEventListener('play',musicState);
-music.addEventListener('pause',musicState);
-music.addEventListener('error',()=>{
-  musicToggle.textContent='♫ Qayta urinish';
-  musicToggle.setAttribute('aria-label','Musiqani qayta yuklash');
-  musicToggle.setAttribute('aria-pressed','false');
-});
-musicToggle.addEventListener('click',()=>{
-  musicChosen=true;
-  if(music.error)music.load();
-  if(music.paused)startMusic();else music.pause();
-});
 
 const nm=document.getElementById('nm');nm.setAttribute('aria-label',NAME);
 [...NAME].forEach((c,i)=>{const s=document.createElement('span');s.className='ltr';s.style.setProperty('--i',i);s.textContent=c===' '?'\u00a0':c;s.setAttribute('aria-hidden','true');nm.append(s)});
@@ -143,7 +120,6 @@ P.forEach(()=>D.append(document.createElement('i')));
 let cur=0,busy=false;D.children[0].classList.add('on');
 function go(n,x,y){
   if(n<0||n>=P.length||n===cur||busy)return;
-  if(!musicChosen){musicChosen=true;startMusic()}
   busy=true;const old=P[cur],nw=P[n];
   x=x??innerWidth/2;y=y??innerHeight*.75;
   old.className='page prev';nw.className='page on';
@@ -187,6 +163,69 @@ function tick(){
   for(const p of parts){p.vy+=.28;p.x+=p.vx;p.y+=p.vy;p.r+=.2;p.l--;ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);ctx.restore()}
   raf=parts.length?requestAnimationFrame(tick):0;
 }
+</script>
+<script>
+(function(){
+  var AC=window.AudioContext||window.webkitAudioContext,ac,out,playing=false,timer=0,chosen=false;
+  var tg=document.getElementById('music-toggle'),BEAT=.62;
+  var F={f:[41,[53,57,60]],c:[36,[52,55,58]],b:[34,[50,53,58]]};
+  var song=[
+    {n:[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2]],c:[[0,'c'],[3,'c']],len:6},
+    {n:[[60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2]],c:[[0,'c'],[3,'f']],len:6},
+    {n:[[60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2]],c:[[1,'f'],[4,'c']],len:7},
+    {n:[[70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]],c:[[0,'b'],[3,'f']],len:6}
+  ];
+  function key(m,when,dur,vel){
+    var fr=440*Math.pow(2,(m-69)/12),g=ac.createGain(),lp=ac.createBiquadFilter();
+    lp.type='lowpass';lp.frequency.value=Math.min(9000,fr*7+900);lp.Q.value=.3;
+    g.gain.setValueAtTime(0,when);
+    g.gain.linearRampToValueAtTime(vel,when+.006);
+    g.gain.exponentialRampToValueAtTime(vel*.38,when+.35);
+    g.gain.exponentialRampToValueAtTime(.0006,when+dur);
+    lp.connect(g);g.connect(out);
+    [[1,'triangle',1,0],[2,'sine',.4,3],[3,'sine',.13,-4],[4,'sine',.05,5]].forEach(function(p){
+      var o=ac.createOscillator(),pg=ac.createGain();
+      o.type=p[1];o.frequency.value=fr*p[0];o.detune.value=p[3];pg.gain.value=p[2];
+      o.connect(pg);pg.connect(lp);o.start(when);o.stop(when+dur+.1);
+    });
+  }
+  function loop(){
+    var t=ac.currentTime+.15;
+    song.forEach(function(ph){
+      var t0=t;
+      ph.c.forEach(function(x){
+        var ch=F[x[1]],w=t0+x[0]*BEAT;
+        key(ch[0],w,BEAT*2.4,.22);
+        ch[1].forEach(function(m,i){key(m,w+BEAT+i*.012,BEAT*1.6,.07);key(m,w+BEAT*2+i*.012,BEAT*1.5,.06);});
+      });
+      ph.n.forEach(function(x){key(x[0],t,Math.max(x[1]*BEAT*1.9,1.1),.3);t+=x[1]*BEAT;});
+      t=t0+ph.len*BEAT;
+    });
+    var last=song[3];
+    key(72-12,t-BEAT*2,BEAT*4,.2);
+    timer=setTimeout(function(){if(playing)loop();},(t+1.6-ac.currentTime)*1000);
+  }
+  function label(){
+    tg.setAttribute('aria-pressed',String(playing));
+    tg.setAttribute('aria-label',playing?"Musiqani o'chirish":"Musiqani yoqish");
+    tg.textContent=playing?"♫ Piano: o'chirish":"♫ Piano: yoqish";
+  }
+  function start(){
+    if(!AC)return;
+    try{
+      if(!ac){
+        ac=new AC();out=ac.createGain();out.gain.value=.8;
+        var d=ac.createDelay(),fb=ac.createGain(),w=ac.createGain();
+        d.delayTime.value=.19;fb.gain.value=.3;w.gain.value=.22;
+        out.connect(ac.destination);out.connect(d);d.connect(fb);fb.connect(d);d.connect(w);w.connect(ac.destination);
+      }
+      ac.resume();playing=true;loop();label();
+    }catch(e){playing=false;label();}
+  }
+  function stop(){playing=false;clearTimeout(timer);if(ac)ac.suspend();label();}
+  tg.addEventListener('click',function(e){e.stopPropagation();chosen=true;playing?stop():start();});
+  document.addEventListener('click',function(e){if(!chosen&&!e.target.closest('#music-toggle')){chosen=true;start();}});
+})();
 </script>
 </body>
 </html>
