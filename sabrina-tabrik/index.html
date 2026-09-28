@@ -37,7 +37,7 @@ body{background:var(--bg);color:var(--ink);font:400 1.1rem/1.5 "Bricolage Grotes
 h2{font-weight:800;font-size:clamp(2rem,8vw,3.2rem);line-height:1.05;letter-spacing:-.03em;margin:0;text-wrap:balance}
 p{margin:0;text-wrap:pretty}
 .mut{color:var(--mut)}
-.go{font:700 1.05rem "Bricolage Grotesque",sans-serif;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:.95rem 2rem;cursor:pointer;transition:transform .2s}
+.go{font:700 1.05rem "Bricolage Grotesque",sans-serif;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:.95rem 2rem;cursor:pointer;transition:transform .2s;-webkit-tap-highlight-color:transparent}
 .go:hover{transform:scale(1.06)}
 .go:focus-visible,.orb:focus-visible{outline:3px solid var(--coral);outline-offset:4px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(100%,520px)}
@@ -45,7 +45,7 @@ p{margin:0;text-wrap:pretty}
 .tile:nth-child(1){border-radius:26px 26px 26px 6px}
 .tile:nth-child(4){grid-column:1/-1;border-radius:6px 26px 26px 26px}
 .tile b{display:block;font-size:1.3rem;letter-spacing:-.02em;margin-bottom:.2rem}
-.orb{width:min(58vw,230px);aspect-ratio:1;border:0;border-radius:50%;cursor:pointer;font:700 1.2rem "Bricolage Grotesque",sans-serif;color:#2A1450;background:radial-gradient(circle at 35% 30%,#fff,var(--butter) 32%,var(--coral) 78%);box-shadow:0 0 90px 10px rgba(255,111,97,.5);animation:pl 2.4s ease-in-out infinite}
+.orb{width:min(58vw,230px);aspect-ratio:1;border:0;border-radius:50%;cursor:pointer;font:700 1.2rem "Bricolage Grotesque",sans-serif;color:#2A1450;background:radial-gradient(circle at 35% 30%,#fff,var(--butter) 32%,var(--coral) 78%);box-shadow:0 0 90px 10px rgba(255,111,97,.5);animation:pl 2.4s ease-in-out infinite;-webkit-tap-highlight-color:transparent}
 .orb.done{animation:none;transform:scale(1.12);transition:transform .5s}
 @keyframes pl{50%{transform:scale(1.07)}}
 .card{max-width:34rem;background:var(--glass);border:1px solid var(--edge);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-radius:30px 30px 30px 8px;padding:1.6rem;text-align:left;display:grid;gap:.8rem}
@@ -53,13 +53,13 @@ p{margin:0;text-wrap:pretty}
 canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
 @media (prefers-reduced-motion:reduce){.page::before,.orb{animation:none}.rise,.ltr{opacity:1;transform:none;animation:none!important}}
 
-.music-toggle{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:7;border:1px solid var(--edge);border-radius:999px;padding:10px 16px;background:var(--bg);color:var(--ink);font:700 .85rem "Bricolage Grotesque",system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 20px #2a145018}
+.music-toggle{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:7;border:1px solid var(--edge);border-radius:999px;padding:10px 16px;background:var(--bg);color:var(--ink);font:700 .85rem "Bricolage Grotesque",system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 20px #2a145018;-webkit-tap-highlight-color:transparent}
 .music-toggle:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
 .page{padding-bottom:max(80px,calc(env(safe-area-inset-bottom,0px) + 70px))}
 </style>
 </head>
 <body>
-<button class="music-toggle" id="music-toggle" type="button" aria-pressed="false" aria-label="Musiqani yoqish">♫ Piano: yoqish</button>
+<button class="music-toggle" id="music-toggle" type="button" aria-pressed="false" aria-label="Musiqani boshqarish">♫ Musiqa</button>
 <div class="dots" id="dots"></div>
 <main class="stage" id="stage">
 
@@ -163,88 +163,156 @@ function tick(){
   raf=parts.length?requestAnimationFrame(tick):0;
 }
 </script>
+
 <script>
+// MOBIL (iOS / Android) moslashtirilgan Audio tizimi
 (function(){
-  var AC=window.AudioContext||window.webkitAudioContext,ac,out,playing=false,timer=0;
-  var tg=document.getElementById('music-toggle'),BEAT=.62;
-  var openBtn=document.getElementById('open-btn');
-  var F={f:[41,[53,57,60]],c:[36,[52,55,58]],b:[34,[50,53,58]]};
-  var song=[
-    {n:[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2]],c:[[0,'c'],[3,'c']],len:6},
-    {n:[[60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2]],c:[[0,'c'],[3,'f']],len:6},
-    {n:[[60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2]],c:[[1,'f'],[4,'c']],len:7},
-    {n:[[70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]],c:[[0,'b'],[3,'f']],len:6}
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var ac = null, out = null, playing = false, timer = null;
+  var tg = document.getElementById('music-toggle');
+  var openBtn = document.getElementById('open-btn');
+  var BEAT = 0.62;
+
+  var F = {
+    f: [41, [53, 57, 60]],
+    c: [36, [52, 55, 58]],
+    b: [34, [50, 53, 58]]
+  };
+
+  var song = [
+    {n:[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2]], c:[[0,'c'],[3,'c']], len:6},
+    {n:[[60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2]], c:[[0,'c'],[3,'f']], len:6},
+    {n:[[60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2]], c:[[1,'f'],[4,'c']], len:7},
+    {n:[[70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]], c:[[0,'b'],[3,'f']], len:6}
   ];
-  function key(m,when,dur,vel){
-    var fr=440*Math.pow(2,(m-69)/12),g=ac.createGain(),lp=ac.createBiquadFilter();
-    lp.type='lowpass';lp.frequency.value=Math.min(9000,fr*7+900);lp.Q.value=.3;
-    g.gain.setValueAtTime(0,when);
-    g.gain.linearRampToValueAtTime(vel,when+.006);
-    g.gain.exponentialRampToValueAtTime(vel*.38,when+.35);
-    g.gain.exponentialRampToValueAtTime(.0006,when+dur);
-    lp.connect(g);g.connect(out);
-    [[1,'triangle',1,0],[2,'sine',.4,3],[3,'sine',.13,-4],[4,'sine',.05,5]].forEach(function(p){
-      var o=ac.createOscillator(),pg=ac.createGain();
-      o.type=p[1];o.frequency.value=fr*p[0];o.detune.value=p[3];pg.gain.value=p[2];
-      o.connect(pg);pg.connect(lp);o.start(when);o.stop(when+dur+.1);
+
+  function initAudio() {
+    if (!ac && AudioCtx) {
+      ac = new AudioCtx();
+      out = ac.createGain();
+      out.gain.value = 0.85;
+
+      var d = ac.createDelay(), fb = ac.createGain(), w = ac.createGain();
+      d.delayTime.value = 0.18;
+      fb.gain.value = 0.28;
+      w.gain.value = 0.2;
+
+      out.connect(ac.destination);
+      out.connect(d);
+      d.connect(fb);
+      fb.connect(d);
+      d.connect(w);
+      w.connect(ac.destination);
+    }
+    // iOS Safari uchun xavfsizlik buferini bo'shatib uyg'otish:
+    if (ac && ac.state === 'suspended') {
+      ac.resume();
+      var b = ac.createBuffer(1, 1, 22050);
+      var src = ac.createBufferSource();
+      src.buffer = b;
+      src.connect(ac.destination);
+      src.start(0);
+    }
+  }
+
+  function key(m, when, dur, vel) {
+    if (!ac) return;
+    var fr = 440 * Math.pow(2, (m - 69) / 12);
+    var g = ac.createGain(), lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = Math.min(8500, fr * 7 + 800);
+    lp.Q.value = 0.4;
+
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(vel, when + 0.008);
+    g.gain.exponentialRampToValueAtTime(vel * 0.4, when + 0.35);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+    lp.connect(g);
+    g.connect(out);
+
+    [[1, 'triangle', 1, 0], [2, 'sine', 0.4, 2], [3, 'sine', 0.12, -3]].forEach(function(p) {
+      var o = ac.createOscillator(), pg = ac.createGain();
+      o.type = p[1];
+      o.frequency.value = fr * p[0];
+      o.detune.value = p[3];
+      pg.gain.value = p[2];
+      o.connect(pg);
+      pg.connect(lp);
+      o.start(when);
+      o.stop(when + dur + 0.1);
     });
   }
-  function loop(){
-    var t=ac.currentTime+.15;
-    song.forEach(function(ph){
-      var t0=t;
-      ph.c.forEach(function(x){
-        var ch=F[x[1]],w=t0+x[0]*BEAT;
-        key(ch[0],w,BEAT*2.4,.22);
-        ch[1].forEach(function(m,i){key(m,w+BEAT+i*.012,BEAT*1.6,.07);key(m,w+BEAT*2+i*.012,BEAT*1.5,.06);});
-      });
-      ph.n.forEach(function(x){key(x[0],t,Math.max(x[1]*BEAT*1.9,1.1),.3);t+=x[1]*BEAT;});
-      t=t0+ph.len*BEAT;
-    });
-    key(72-12,t-BEAT*2,BEAT*4,.2);
-    timer=setTimeout(function(){if(playing)loop();},(t+1.6-ac.currentTime)*1000);
-  }
-  function label(){
-    tg.setAttribute('aria-pressed',String(playing));
-    tg.setAttribute('aria-label',playing?"Musiqani to'xtatish":"Musiqani yoqish");
-    tg.textContent=playing?"♫ Piano: o'chirish":"♫ Piano: yoqish";
-  }
-  function start(){
-    if(!AC||playing)return;
-    try{
-      if(!ac){
-        ac=new AC();out=ac.createGain();out.gain.value=.8;
-        var d=ac.createDelay(),fb=ac.createGain(),w=ac.createGain();
-        d.delayTime.value=.19;fb.gain.value=.3;w.gain.value=.22;
-        out.connect(ac.destination);out.connect(d);d.connect(fb);fb.connect(d);d.connect(w);w.connect(ac.destination);
-      }
-      if(ac.state==='suspended'){
-        ac.resume().then(function(){
-          playing=true;loop();label();
+
+  function playMelody() {
+    if (!ac || !playing) return;
+    var t = ac.currentTime + 0.1;
+    song.forEach(function(ph) {
+      var t0 = t;
+      ph.c.forEach(function(x) {
+        var ch = F[x[1]], w = t0 + x[0] * BEAT;
+        key(ch[0], w, BEAT * 2.2, 0.22);
+        ch[1].forEach(function(m, i) {
+          key(m, w + BEAT + i * 0.01, BEAT * 1.5, 0.08);
+          key(m, w + BEAT * 2 + i * 0.01, BEAT * 1.4, 0.07);
         });
-      }else{
-        playing=true;loop();label();
-      }
-    }catch(e){}
-  }
-  function stop(){
-    playing=false;clearTimeout(timer);
-    if(ac)ac.suspend();
-    label();
-  }
-
-  // "Ochib ko'r" tugmasi bosilganda musiqa avtomatik boshlanadi
-  if(openBtn){
-    openBtn.addEventListener('click',function(){
-      if(!playing) start();
+      });
+      ph.n.forEach(function(x) {
+        key(x[0], t, Math.max(x[1] * BEAT * 1.8, 1.0), 0.35);
+        t += x[1] * BEAT;
+      });
+      t = t0 + ph.len * BEAT;
     });
+
+    key(60, t - BEAT * 2, BEAT * 4, 0.25);
+    timer = setTimeout(function() {
+      if (playing) playMelody();
+    }, (t + 1.2 - ac.currentTime) * 1000);
   }
 
-  // Pastdagi tugma orqali xohlasa o'chirib/yoqishi ham mumkin
-  tg.addEventListener('click',function(e){
+  function updateBtn() {
+    tg.setAttribute('aria-pressed', String(playing));
+    tg.textContent = playing ? "♫ Musiqa: o'chirish" : "♫ Musiqa: yoqish";
+  }
+
+  function start() {
+    initAudio();
+    if (!ac) return;
+    ac.resume().then(function() {
+      playing = true;
+      clearTimeout(timer);
+      playMelody();
+      updateBtn();
+    }).catch(function(){});
+  }
+
+  function stop() {
+    playing = false;
+    clearTimeout(timer);
+    if (ac) ac.suspend();
+    updateBtn();
+  }
+
+  // Telefonda 'click' ba'zan kechikadi yoki cheklanadi, shu sababli to'g'ridan-to'g'ri 'pointerdown' / 'touchstart' hodisasi bilan bog'landi:
+  function triggerStart(e) {
+    if (!playing) {
+      start();
+    }
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener('click', triggerStart);
+    openBtn.addEventListener('touchend', triggerStart, {passive: true});
+  }
+
+  tg.addEventListener('click', function(e) {
     e.stopPropagation();
-    playing?stop():start();
+    playing ? stop() : start();
   });
+  tg.addEventListener('touchend', function(e) {
+    e.stopPropagation();
+  }, {passive: true});
+
 })();
 </script>
 </body>
